@@ -14,7 +14,9 @@ data_out <- "Data/Output/"
 crime <- "data_crime_2005_2010.RData"
 cr2 <- "hw_data_1980_2021.RData"
 green <- "green_spaces_2005_2010.RData"
-poverty <- "poverty_casen_2006.RData"
+poverty03 <- "poverty_casen_2003.RData"
+poverty06 <- "poverty_casen_2006.RData"
+poverty09 <- "poverty_casen_2009.RData"
 #sinca <- "series_daily_cont12h_2000_2023_wide.RData"
 #sinca_max <- "crim.temp.df3.RData"
 #zc <- "zc_geometry.RData"
@@ -24,7 +26,10 @@ poverty <- "poverty_casen_2006.RData"
 crime <- rio::import(paste0(data_out, crime)) %>% janitor::clean_names() |> filter(year>=2005 & year <=2010) 
 cr2 <- rio::import(paste0(data_out, cr2)) %>% janitor::clean_names() |> filter(year>=2005 & year <=2010)
 green <- rio::import(paste0(data_out, green)) %>% janitor::clean_names()
-poverty <- rio::import(paste0(data_out, poverty)) %>% janitor::clean_names()
+
+poverty03 <- rio::import(paste0(data_out, poverty03)) %>% janitor::clean_names()
+poverty06 <- rio::import(paste0(data_out, poverty06)) %>% janitor::clean_names()
+poverty09 <- rio::import(paste0(data_out, poverty09)) %>% janitor::clean_names()
 
 #sinca <- rio::import(paste0(data_out, sinca)) %>% janitor::clean_names() |> filter(year>=2005 & year <=2010)
 #sinca_max <- rio::import(paste0(data_out, sinca_max)) %>% janitor::clean_names() 
@@ -65,10 +70,25 @@ crime <- crime |>
 summary(crime)
 
 # Crime and temp and green space and poverty
+glimpse(poverty03)
+glimpse(poverty06)
+glimpse(poverty09)
+
+poverty <- poverty03 |> 
+  bind_rows(poverty06) |> 
+  bind_rows(poverty09)
+
 glimpse(poverty)
 
 crime <- crime |> 
-  left_join(poverty, by=c("cod_mun"="comuna"))
+  mutate(aux = case_when(
+    year %in% c(2005, 2006) ~ 2003, 
+    year %in% c(2007, 2008) ~ 2006, 
+    year %in% c(2009, 2010) ~ 2009, 
+    TRUE ~ NA_real_
+  )) |> 
+  left_join(poverty, by=c("cod_mun"="comuna", "aux"="year")) |> 
+  dplyr::select(-aux)
 
 summary(crime)
 

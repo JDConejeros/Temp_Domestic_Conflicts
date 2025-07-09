@@ -23,7 +23,8 @@ green <- rio::import(paste0(data_inp, ndvi)) |>
                names_to = "date", 
                values_to = "green_index") |> 
   mutate(date = str_remove(date, "x")) |> 
-  mutate(date = as.Date(date, format = "%Y_%m_%d"))
+  mutate(date = as.Date(date, format = "%Y_%m_%d")) |> 
+  mutate(green_index=green_index/10000) # Adjust scale -1, 1
 
 # Edit dates and values
 green <- green %>%

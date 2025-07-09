@@ -19,7 +19,7 @@ glimpse(crime)
 
 ## Prepare count data for the models -----
 
-temp <- crime |> dplyr::select(cod_mun, name_mun, date_crime, year, month, day_month, day_week, weekends, sup, tmax:tmax_group) |> 
+temp <- crime |> dplyr::select(cod_mun, name_mun, date_crime, year, month, day_month, day_week, weekends, sup, green_index, pob, pob_median, quintil, tmax:tmax_group) |> 
   distinct()
 
 crime_count <- crime |> 
@@ -41,7 +41,7 @@ glimpse(crime_count)
 ## Models Checks -----
 
 ## Models function 
-generate_poisson_models <- function(data, out_path, dep_var, indep_var, fixed_effects, cluster_var) {
+generate_poisson_models <- function(data, out_path, dep_var, indep_var, control_var, fixed_effects, cluster_var) {
   
   # Models
   models <- list()
@@ -50,7 +50,7 @@ generate_poisson_models <- function(data, out_path, dep_var, indep_var, fixed_ef
   for (i in seq_along(fixed_effects)) {
 
     fe_formula <- paste(fixed_effects[1:i], collapse = " + ") 
-    formula <- as.formula(paste(dep_var, "~", indep_var, "|", fe_formula))  
+    formula <- as.formula(paste(dep_var, "~", indep_var, "+", control_var, "|", fe_formula))  
     models[[paste0("Model ", i)]] <- fepois(formula, cluster = cluster_var, data = data)
   
   }
@@ -63,8 +63,9 @@ generate_poisson_models <- function(data, out_path, dep_var, indep_var, fixed_ef
                fmt = 4,
                output = out_path,  
                #coef_map = coef_map, 
-               align = "lcccc")
-  
+               #align = "lcccc"
+              )
+  #return(formula)
   return(models)
 }
 
@@ -74,9 +75,15 @@ generate_poisson_models(
   out_path = "Output/Models/Models_tmax.docx",  
   dep_var = "ifv_count",
   indep_var = "tmax",
+  control_var = paste("pob_median", "green_index", sep = " + "), 
   fixed_effects = c("factor(cod_mun)", "factor(year)", "factor(month)", "factor(weekends)"),
   cluster_var = ~cod_mun
 )
+
+m1 <- fepois(ifv_count ~ tmax + green_index + tmax * green_index |  factor(cod_mun) + factor(year) +  
+  factor(month) + factor(weekends), cluster = ~factor(cod_mun), data = crime_count)
+
+summary(m1)
 
 # Check Binominal negative vs poisson 
 generate_nb_models <- function(data, out_path, dep_var, indep_var, fixed_effects, cluster_var) {

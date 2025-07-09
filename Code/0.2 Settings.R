@@ -4,7 +4,7 @@ options(scipen=999)
 options(max.print = 99999999)
 options(knitr.kable.NA = '', OutDec = ".") 
 knitr::opts_chunk$set("ft.shadow" = FALSE)
-rm(list=(ls()))
+#rm(list=(ls()))
 
 # Local figures text
 #Sys.setlocale(category = "LC_ALL", "es_ES.UTF-8") #LAT
