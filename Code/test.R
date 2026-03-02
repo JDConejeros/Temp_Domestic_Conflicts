@@ -1,49 +1,4 @@
-# Code 4: Descriptive analysis ----
 
-rm(list=ls())
-## Settings ----
-source("Code/0.1 Functions.R")
-source("Code/0.2 Settings.R")
-
-# Data path 
-data_inp <- "Data/Input/"
-data_out <- "Data/Output/"
-
-#ref <- "crim.temp.df3.RData"
-#ref <- rio::import(paste0(data_out, ref)) 
-
-## Open Data -----
-crime <- "data_crime_tmax_2005_2010.RData"
-crime <- rio::import(paste0(data_out, crime)) 
-glimpse(crime)
-
-## Prepare count data -----
-
-temp <- crime |> 
-  mutate(week = floor_date(date_crime, unit = "week", week_start = 1)) |> 
-  relocate(week, .after = month) |> 
-  dplyr::select(cod_mun, id_mun, name_mun, date_crime, year, month, week, day_month, day_week, weekends, sup, tmax:tmax_group) |> 
-  distinct()
-
-crime_count <- crime |> 
-  group_by(cod_mun, name_mun, date_crime, crime_6) |> 
-  summarise(crime_count = n()) |> 
-  pivot_wider(names_from = crime_6, values_from = crime_count) |> 
-  janitor::clean_names() 
-
-crime_count <- temp |> 
-  left_join(crime_count, by=c("cod_mun", "name_mun", "date_crime")) |> 
-  arrange(cod_mun, date_crime) |> 
-    mutate(
-      robbery = replace_na(robbery, 0),   
-      larceny = replace_na(larceny, 0),   
-      vehicle_theft = replace_na(vehicle_theft, 0),   
-      burglary = replace_na(burglary, 0),   
-      injuries = replace_na(injuries, 0),   
-      intrafamily_violence = replace_na(intrafamily_violence, 0)
-    )
-
-glimpse(crime_count)
 
 ## Distribution of crimes -----
 
