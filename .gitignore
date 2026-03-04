@@ -51,6 +51,13 @@ rsconnect/
 # Folders
 01_Data/Input/*
 01_Data/Output/*
-04_Docs/*
+01_Data/Output/analytical_data/district
+!01_Data/Output/analytical_data/
+!01_Data/Output/analytical_data/quadrant/
+!01_Data/Output/analytical_data/quadrant/**
+01_Data/Output/analytical_data/quadrant/crime_data_RM_2017_2025.RData
+01_Data/Output/analytical_data/quadrant/crime_quad_time_RM_2017_2025.RData
+01_Data/Output/analytical_data/quadrant/crime_quad_place_RM_2017_2025.RData
 02_Code/test.R
+04_Docs/*
 *.docx
