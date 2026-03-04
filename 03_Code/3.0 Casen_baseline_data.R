@@ -2,12 +2,12 @@
 
 rm(list=ls())
 ## Settings ----
-source("Code/0.1 Functions.R")
-source("Code/0.2 Settings.R")
+source("03_Code/0.1 Functions.R")
+source("03_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "Data/Input/"
-data_out <- "Data/Output/"
+data_inp <- "02_Data/Input/"
+data_out <- "02_Data/Output/"
 
 # CASEN DATA 2017 ----
 

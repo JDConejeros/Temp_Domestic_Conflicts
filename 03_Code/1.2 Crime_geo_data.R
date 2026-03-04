@@ -1,12 +1,12 @@
 # Code 1.1: Crime classification ----
 rm(list=ls())
 ## Settings ----
-source("Code/0.1 Functions.R")
-source("Code/0.2 Settings.R")
+source("03_Code/0.1 Functions.R")
+source("03_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "Data/Input/"
-data_out <- "Data/Output/"
+data_inp <- "02_Data/Input/"
+data_out <- "02_Data/Output/"
 
 # Crime Inputs ----
 crime_data <- rio::import(paste0(data_out, "Crime_process_RM_2017_2025.RData")); glimpse(crime_data)
@@ -113,7 +113,9 @@ crime_data <- crime_data |>
   )
 
 # Join geo data
-crime_data <- crime_data 
+crime_data <- crime_data |> 
+  left_join(quad_geo |> dplyr::select(quadrant, com_code, geometry), by = "quadrant")
+
 glimpse(crime_data)
 
 # District maps 

@@ -49,9 +49,7 @@ po/*~
 rsconnect/
 
 # Folders
-Data/*
-Papers/*
-Code/results_VIF.R
-Code/trash_code.R
+02_Data/*
+01_Docs/*
+03_Code/test.R
 *.docx
-Code/4.0 Census_baseline_data.R

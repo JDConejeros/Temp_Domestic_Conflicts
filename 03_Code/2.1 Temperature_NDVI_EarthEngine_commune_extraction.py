@@ -1,7 +1,7 @@
 """
 Code 2.1: Extract Temperature and NDVI data using Google Earth Engine
-Extracts daily temperature (min, max, mean) and NDVI for each geometry in quad_geo.shp
-Period: 2017-01-01 to 2025-12-01
+Extracts daily temperature (min, max, mean) and NDVI for each commune geometry
+Period: 2017-01-01 to 2025-11-01
 
 Reference: https://developers.google.com/earth-engine/guides/quickstart_python
 
@@ -24,21 +24,67 @@ ee.Authenticate()
 ee.Initialize(project='quadrant-rm')
 
 # Set paths
-data_out = "Data/Output/quad_geo/"
-shapefile_path = os.path.join(data_out, "quad_geo.shp")
+data_out = "02_Data/Output/district_geo/"
+os.makedirs(data_out, exist_ok=True)
 
-# Load shapefile
-quad_gdf = gpd.read_file(shapefile_path)
-print(f"Loaded {len(quad_gdf)} geometries")
+# Option 1: Load from existing shapefile if available
+shapefile_path = os.path.join(data_out, "district_geo.shp")
+
+if os.path.exists(shapefile_path):
+    print(f"Loading shapefile from {shapefile_path}")
+    commune_gdf = gpd.read_file(shapefile_path)
+else:
+    # Option 2: Create commune geometries using chilemapas (requires R)
+    # First, create a simple R script to export communes
+    print("Shapefile not found. Creating commune geometries...")
+    print("Note: This requires R and chilemapas package.")
+    print("Run the following R code first to create the shapefile:")
+    print("""
+    library(chilemapas)
+    library(sf)
+    library(dplyr)
+    
+    # Get communes from Región Metropolitana (codigo_region == 13)
+    comunas_rm <- mapa_comunas %>%
+      mutate(codigo_comuna = as.numeric(codigo_comuna)) %>%
+      filter(codigo_region == 13) %>%
+      mutate(geometry_id = row_number() - 1) %>%
+      select(geometry_id, codigo_comuna, nombre_comuna, codigo_region, nombre_region, geometry)
+    
+    # Ensure CRS is WGS84
+    comunas_rm <- st_transform(comunas_rm, crs = 4326)
+    
+    # Save as shapefile
+    st_write(comunas_rm, "02_Data/Output/district_geo/district_geo.shp", delete_dsn = TRUE)
+    """)
+    
+    # Try to load anyway in case it was just created
+    if os.path.exists(shapefile_path):
+        commune_gdf = gpd.read_file(shapefile_path)
+    else:
+        raise FileNotFoundError(
+            f"Shapefile not found: {shapefile_path}\n"
+            "Please create it first using the R code shown above."
+        )
+
+print(f"Loaded {len(commune_gdf)} district geometries")
 
 # Ensure CRS is WGS84 (EPSG:4326) for Earth Engine
-if quad_gdf.crs != 'EPSG:4326':
-    print(f"Reprojecting from {quad_gdf.crs} to EPSG:4326")
-    quad_gdf = quad_gdf.to_crs('EPSG:4326')
+if commune_gdf.crs != 'EPSG:4326':
+    print(f"Reprojecting from {commune_gdf.crs} to EPSG:4326")
+    commune_gdf = commune_gdf.to_crs('EPSG:4326')
 
 # Add geometry ID if not present
-if 'geometry_id' not in quad_gdf.columns:
-    quad_gdf['geometry_id'] = range(len(quad_gdf))
+if 'geometry_id' not in commune_gdf.columns:
+    commune_gdf['geometry_id'] = range(len(commune_gdf))
+
+# Add district code if not present (for reference)
+if 'codigo_comuna' not in commune_gdf.columns:
+    if 'codigo_comuna' in commune_gdf.columns:
+        pass  # Already exists
+    else:
+        # Try to extract from other columns
+        commune_gdf['codigo_comuna'] = commune_gdf['geometry_id']
 
 # Date range
 start_date = '2017-01-01'
@@ -61,9 +107,14 @@ def gdf_to_ee_featurecollection(gdf):
                 print(f"Skipping geometry {idx}: type {geom.geom_type}")
                 continue
             
-            # Create feature with geometry ID
+            # Create feature with geometry ID and commune code
             geometry_id = int(row.get('geometry_id', idx))
-            feature = ee.Feature(ee_geom, {'geometry_id': geometry_id})
+            codigo_comuna = int(row.get('codigo_comuna', geometry_id))
+            
+            feature = ee.Feature(ee_geom, {
+                'geometry_id': geometry_id,
+                'codigo_comuna': codigo_comuna
+            })
             features.append(feature)
         except Exception as e:
             print(f"Error processing geometry {idx}: {e}")
@@ -72,17 +123,16 @@ def gdf_to_ee_featurecollection(gdf):
     return ee.FeatureCollection(features)
 
 # Convert to EE FeatureCollection
-ee_fc = gdf_to_ee_featurecollection(quad_gdf)
+ee_fc = gdf_to_ee_featurecollection(commune_gdf)
 fc_size = ee_fc.size().getInfo()
 print(f"Converted to Earth Engine FeatureCollection with {fc_size} features")
 
 # Function to extract temperature data
-# https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR?hl=es-419#description -> Not function 
-# https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_DAILY?hl=es_419#description
+# https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR?hl=es-419#description
 def extract_temperature_data(feature_collection, start_date, end_date):
     """Extract daily temperature data (min, max, mean) from ERA5-Land"""
     
-    # Load ERA5-Land daily dataset: ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") // ee.ImageCollection("ECMWF/ERA5/DAILY")
+    # Load ERA5-Land daily dataset
     # Available bands: temperature_2m, temperature_2m_min, temperature_2m_max
     era5 = ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR") \
         .filterDate(start_date, end_date) \
@@ -105,17 +155,9 @@ def extract_temperature_data(feature_collection, start_date, end_date):
                 scale=11132,  # ~1km resolution for ERA5-Land
                 maxPixels=1e9
             )
-#reducer=ee.Reducer.mean().combine(
-#            reducer2=ee.Reducer.minMax(),
-#            sharedInputs=True
-#        ),
             
             # Convert from Kelvin to Celsius
-            # Note: temperature_2m is the mean temperature (not temperature_2m_mean)
-            #temp_mean = ee.Number(stats.get('temperature_2m_mean')).subtract(273.15)
-            #temp_min = ee.Number(stats.get('temperature_2m_min')).subtract(273.15)
-            #temp_max = ee.Number(stats.get('temperature_2m_max')).subtract(273.15)
-            
+            # Note: temperature_2m is the mean temperature
             temp_mean = ee.Algorithms.If(
                 stats.get('temperature_2m'),
                 ee.Number(stats.get('temperature_2m')).subtract(273.15),
@@ -135,9 +177,11 @@ def extract_temperature_data(feature_collection, start_date, end_date):
             )
             
             geom_id = feature.get('geometry_id')
+            codigo_comuna = feature.get('codigo_comuna')
             
             return ee.Feature(None, {
                 'geometry_id': geom_id,
+                'codigo_comuna': codigo_comuna,
                 'date': date_str,
                 'temperature_2m': temp_mean,
                 'temperature_2m_min': temp_min,
@@ -188,9 +232,11 @@ def extract_ndvi_data(feature_collection, start_date, end_date):
             
             ndvi_value = ee.Number(stats.get('NDVI'))
             geom_id = feature.get('geometry_id')
+            codigo_comuna = feature.get('codigo_comuna')
             
             return ee.Feature(None, {
                 'geometry_id': geom_id,
+                'codigo_comuna': codigo_comuna,
                 'date': date_str,
                 'ndvi': ndvi_value
             })
@@ -218,7 +264,7 @@ ndvi_features = extract_ndvi_data(ee_fc, start_date, end_date)
 # Export temperature data
 task_temp = ee.batch.Export.table.toDrive(
     collection=temp_features,
-    description='temperature_daily',
+    description='temperature_daily_district',
     folder='EarthEngine_Exports',
     fileFormat='CSV'
 )
@@ -230,7 +276,7 @@ print(f"  Status: {task_temp.state}")
 # Export NDVI data
 task_ndvi = ee.batch.Export.table.toDrive(
     collection=ndvi_features,
-    description='ndvi_daily',
+    description='ndvi_daily_district',
     folder='EarthEngine_Exports',
     fileFormat='CSV'
 )
@@ -246,4 +292,3 @@ def check_task_status(task_id):
     if task:
         return task.state
     return None
-

@@ -1,12 +1,12 @@
 # Code 1.1: Crime classification ----
 rm(list=ls())
 ## Settings ----
-source("Code/0.1 Functions.R")
-source("Code/0.2 Settings.R")
+source("03_Code/0.1 Functions.R")
+source("03_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "Data/Input/"
-data_out <- "Data/Output/"
+data_inp <- "02_Data/Input/"
+data_out <- "02_Data/Output/"
 
 # Crime types ----
 crimes <- rio::import(paste0(data_out, "Crime_types.xlsx"))  # crime types
@@ -152,7 +152,7 @@ crimes_classified <- crimes |>
 glimpse(crimes_classified)
 
 # Distribution of classifications
-crimes_classified |> writexl::write_xlsx("Data/Output/Crime_types_groups.xlsx")
+crimes_classified |> writexl::write_xlsx("02_Data/Output/Crime_types_groups.xlsx")
 
 # Places crimes -----
 places <- rio::import(paste0(data_out, "Crime_places.xlsx"))  # crime places
@@ -203,11 +203,11 @@ places_classified <- places |>
 glimpse(places_classified)
 
 # Distribution of classifications
-places_classified |> writexl::write_xlsx("Data/Output/Crime_places_groups.xlsx")
+places_classified |> writexl::write_xlsx("02_Data/Output/Crime_places_groups.xlsx")
 
 # Quad data ----
 # Source: https://www.geoportal.cl/geoportal/catalog/35002/Plan%20Cuadrante
-load_data <- "Data/Input/plan_cuadrante_2022"
+load_data <- "02_Data/Input/plan_cuadrante_2022"
 quadrant_data <- st_read(paste0(load_data, "/layer_cuadrantes_20220309024642.shp")) |> 
   st_transform(crs = st_crs(4326)) |> 
   janitor::clean_names() |> 
