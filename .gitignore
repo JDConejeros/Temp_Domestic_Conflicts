@@ -49,7 +49,8 @@ po/*~
 rsconnect/
 
 # Folders
-02_Data/*
-01_Docs/*
-03_Code/test.R
+01_Data/Input/*
+01_Data/Output/*
+04_Docs/*
+02_Code/test.R
 *.docx
