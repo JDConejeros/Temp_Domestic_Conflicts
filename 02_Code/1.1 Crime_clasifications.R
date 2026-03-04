@@ -1,12 +1,12 @@
 # Code 1.1: Crime classification ----
 rm(list=ls())
 ## Settings ----
-source("03_Code/0.1 Functions.R")
-source("03_Code/0.2 Settings.R")
+source("02_Code/0.1 Functions.R")
+source("02_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 
 # Crime types ----
 crimes <- rio::import(paste0(data_out, "Crime_types.xlsx"))  # crime types
@@ -152,7 +152,7 @@ crimes_classified <- crimes |>
 glimpse(crimes_classified)
 
 # Distribution of classifications
-crimes_classified |> writexl::write_xlsx("02_Data/Output/Crime_types_groups.xlsx")
+crimes_classified |> writexl::write_xlsx("01_Data/Output/Crime_types_groups.xlsx")
 
 # Places crimes -----
 places <- rio::import(paste0(data_out, "Crime_places.xlsx"))  # crime places

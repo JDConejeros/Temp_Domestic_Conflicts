@@ -24,7 +24,7 @@ ee.Authenticate()
 ee.Initialize(project='quadrant-rm')
 
 # Set paths
-data_out = "02_Data/Output/quad_geo/"
+data_out = "01_Data/Output/quad_geo/"
 shapefile_path = os.path.join(data_out, "quad_geo.shp")
 
 # Load shapefile

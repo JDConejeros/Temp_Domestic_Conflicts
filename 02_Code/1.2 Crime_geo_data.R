@@ -1,12 +1,12 @@
 # Code 1.1: Crime classification ----
 rm(list=ls())
 ## Settings ----
-source("03_Code/0.1 Functions.R")
-source("03_Code/0.2 Settings.R")
+source("02_Code/0.1 Functions.R")
+source("02_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 
 # Crime Inputs ----
 crime_data <- rio::import(paste0(data_out, "Crime_process_RM_2017_2025.RData")); glimpse(crime_data)

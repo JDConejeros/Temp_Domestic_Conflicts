@@ -1,12 +1,12 @@
 # Code 1: Crime data preparation ----
 rm(list=ls())
 ## Settings ----
-source("03_Code/0.1 Functions.R")
-source("03_Code/0.2 Settings.R")
+source("02_Code/0.1 Functions.R")
+source("02_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 crime <- "Crime_RM_2017_2025.xlsx"
 
 ## Crime data select ---- 
@@ -103,7 +103,7 @@ data_crime <- data_crime |>
 data_crime |> 
   group_by(crime) |>
   summarise(n = n()) |> 
-  writexl::write_xlsx("02_Data/Output/Crime_types.xlsx")
+  writexl::write_xlsx("01_Data/Output/Crime_types.xlsx")
 
 # "typecrime"
 #1   1_Robbery
@@ -116,7 +116,7 @@ data_crime |>
 data_crime |> 
   group_by(place) |>
   summarise(n = n()) |> 
-  writexl::write_xlsx("02_Data/Output/Crime_places.xlsx")
+  writexl::write_xlsx("01_Data/Output/Crime_places.xlsx")
 
 # Save data -----
 save(data_crime, file = paste0(data_out, "Crime_process_RM_2017_2025.RData"))

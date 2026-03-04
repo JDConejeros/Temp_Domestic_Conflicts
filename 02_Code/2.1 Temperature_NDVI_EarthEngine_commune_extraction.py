@@ -24,7 +24,7 @@ ee.Authenticate()
 ee.Initialize(project='quadrant-rm')
 
 # Set paths
-data_out = "02_Data/Output/district_geo/"
+data_out = "01_Data/Output/district_geo/"
 os.makedirs(data_out, exist_ok=True)
 
 # Option 1: Load from existing shapefile if available

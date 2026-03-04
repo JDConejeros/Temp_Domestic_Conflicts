@@ -3,12 +3,12 @@
 rm(list=ls())
 
 ## Settings ----
-source("03_Code/0.1 Functions.R")
-source("03_Code/0.2 Settings.R")
+source("02_Code/0.1 Functions.R")
+source("02_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 
 # Data files 
 crimes <- "Crime_data_RM_2017_2025.RData"
@@ -169,8 +169,8 @@ save(crime_count_place, file=paste0(data_out, "analytical_data/", "quadrant/", "
 rm(list=(ls()))
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 
 # Data
 casen <- "Poverty_casen_RM_2017.RData"

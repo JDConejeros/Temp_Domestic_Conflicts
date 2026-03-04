@@ -2,12 +2,12 @@
 
 rm(list=ls())
 ## Settings ----
-source("03_Code/0.1 Functions.R")
-source("03_Code/0.2 Settings.R")
+source("02_Code/0.1 Functions.R")
+source("02_Code/0.2 Settings.R")
 
 # Data path 
-data_inp <- "02_Data/Input/"
-data_out <- "02_Data/Output/"
+data_inp <- "01_Data/Input/"
+data_out <- "01_Data/Output/"
 quad <- "analytical_data/quadrant/"
 
 ## Open Data -----
@@ -103,7 +103,7 @@ map_plot <- base_map + inset_element(zoom_map,
 map_plot
 
 ggsave(
-  filename = paste0("04_Output/Figures/Maps.png"), 
+  filename = paste0("03_Output/Figures/Maps.png"), 
   res = 300,
   width = 20,
   height = 25,
