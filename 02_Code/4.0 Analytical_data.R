@@ -225,7 +225,7 @@ data_cov <- data_cov |>
 
 # Separte data and geometry to reduce memory usage
 data_geo <- data_cov |> 
-  dplyr::select(quad_code, geometry) |> 
+  dplyr::select(com_code, quadrant_type, quadrant, quad_code, geometry) |> 
   distinct()
 
 # Remove geometry multipoligon 
