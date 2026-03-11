@@ -26,8 +26,6 @@ scl_basemap_05 <- get_tiles(bounds, provider = "OpenTopoMap", zoom = 12)
 
 # Stadia (requiere API key: Sys.setenv("STADIA_MAPS" = "tu_key"))
 #ggmap::register_google(key="AIzaSyBM1GkWmFypAVdIO7aHNRB0spuuQtqDVNw")
-ggmap::register_stadiamaps(key="b8908535-0fbc-44be-a3f0-5bb5ee5c2890")
-Sys.setenv("STADIA_MAPS" = "b8908535-0fbc-44be-a3f0-5bb5ee5c2890")
 scl_basemap_06 <- get_tiles(bounds, provider = "Stadia.AlidadeSmooth", zoom = 12)
 scl_basemap_07 <- get_tiles(bounds, provider = "Stadia.AlidadeSmoothDark", zoom = 12)
 scl_basemap_08 <- get_tiles(bounds, provider = "Stadia.OSMBright", zoom = 12)
