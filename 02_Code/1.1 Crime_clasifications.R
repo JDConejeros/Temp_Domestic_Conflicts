@@ -203,11 +203,11 @@ places_classified <- places |>
 glimpse(places_classified)
 
 # Distribution of classifications
-places_classified |> writexl::write_xlsx("02_Data/Output/Crime_places_groups.xlsx")
+places_classified |> writexl::write_xlsx("01_Data/Output/Crime_places_groups.xlsx")
 
 # Quad data ----
 # Source: https://www.geoportal.cl/geoportal/catalog/35002/Plan%20Cuadrante
-load_data <- "02_Data/Input/plan_cuadrante_2022"
+load_data <- "01_Data/Input/plan_cuadrante_2022"
 quadrant_data <- st_read(paste0(load_data, "/layer_cuadrantes_20220309024642.shp")) |> 
   st_transform(crs = st_crs(4326)) |> 
   janitor::clean_names() |> 

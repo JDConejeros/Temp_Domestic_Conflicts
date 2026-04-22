@@ -318,7 +318,7 @@ ggsave(
 ## Data: 02_Code/4.2_Descriptives_censo_zonas.R -> censo_RM_zonas_2024_resultados.RData
 
 load(paste0(output, "censo_RM_zonas_2024_resultados.RData"))
-geo_rm_2024 <- resultados_censo_rm_2024$sf_zonas
+geo_rm_2024 <- census_rm_2024_results$sf_zones
 
 ## Same layers and theme as fig_ndv_basemap; legend titles in English
 fig_censo_choropleth <- function(geo_rm, fill_var, colours_vec, legend_name, density_scale = FALSE) {
@@ -376,14 +376,14 @@ fig_censo_choropleth <- function(geo_rm, fill_var, colours_vec, legend_name, den
 
 fig_pop_total <- fig_censo_choropleth(
   geo_rm_2024,
-  "poblacion",
+  "population",
   blues_pal,
   "Population (Census 2024)",
   density_scale = FALSE
 )
 fig_pop_female <- fig_censo_choropleth(
   geo_rm_2024,
-  "n_mujeres",
+  "female_population",
   vi_pal,
   "Female population (Census 2024)",
   density_scale = FALSE

@@ -152,3 +152,7 @@ save(com_geo, file = paste0(data_out, "District_data_geo_RM.RData"))
 # Shape file export
 st_write(quad_geo_shp, paste0(data_out, "quad_geo/", "quad_geo.shp"), delete_layer = TRUE)
 st_write(com_geo_shp, paste0(data_out, "district_geo/", "district_geo.shp"), delete_layer = TRUE)
+
+# Plot crime distribution by quadrant
+
+

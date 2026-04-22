@@ -86,7 +86,7 @@ install_load(c("rio",
                "imputeTS",
                "maptiles",
                "tidyterra",
-               "arrow"
+               "arrow" # Parquet data handling
                ))
 
 # Extra 
