@@ -153,6 +153,121 @@ save(com_geo, file = paste0(data_out, "District_data_geo_RM.RData"))
 st_write(quad_geo_shp, paste0(data_out, "quad_geo/", "quad_geo.shp"), delete_layer = TRUE)
 st_write(com_geo_shp, paste0(data_out, "district_geo/", "district_geo.shp"), delete_layer = TRUE)
 
-# Plot crime distribution by quadrant
+# Plot crime distribution by quadrant (count per family × quadrant) ----
+## Metro study area (same clip as 5.0 CENSO_data_zone.R) ----
+urban_island <- c(
+  "13124071004", "13124071005", "13124081001", "13124071001", "13124071002", "13124071003",
+  "13401121001",
+  "13119131001",
+  "13203031000", "13203031001", "13203031002", "13203011001", "13203011002"
+)
 
+stgo_urb <- chilemapas::mapa_zonas |>
+  dplyr::filter(as.numeric(.data$codigo_region) == 13) |>
+  dplyr::left_join(
+    chilemapas::codigos_territoriales |>
+      dplyr::select(dplyr::matches("comuna"))
+  ) |>
+  dplyr::filter(
+    .data$codigo_provincia %in% c(131, 132) | .data$nombre_comuna == "San Bernardo",
+    .data$nombre_comuna != "Pirque"
+  ) |>
+  dplyr::filter(!.data$geocodigo %in% urban_island) |>
+  dplyr::group_by(.data$nombre_comuna, .data$codigo_comuna) |>
+  dplyr::summarise(geometry = sf::st_union(.data$geometry), .groups = "drop") |>
+  dplyr::mutate(codigo_comuna = as.numeric(.data$codigo_comuna)) |>
+  sf::st_as_sf() |>
+  sf::st_transform(4326)
+
+stgo_urb_union <- sf::st_union(stgo_urb)
+
+maps_crime_dir <- "03_Output/Descriptives/Maps_crime/"
+
+crime_by_quad_family <- crime_data |>
+  sf::st_drop_geometry() |>
+  dplyr::count(.data$family, .data$quadrant, name = "n_crimes")
+
+quad_unique <- quad_geo_shp |>
+  sf::st_transform(4326) |>
+  dplyr::distinct(.data$quadrant, .keep_all = TRUE)
+
+quad_unique_metro <- sf::st_intersection(
+  sf::st_make_valid(quad_unique),
+  sf::st_make_valid(stgo_urb_union)
+) |>
+  dplyr::group_by(.data$quadrant) |>
+  dplyr::summarise(geometry = sf::st_union(.data$geometry), .groups = "drop") |>
+  sf::st_as_sf()
+
+crime_family_filename <- function(fam) {
+  gsub("_+", "_", gsub("^_|_$", "", gsub("[^A-Za-z0-9]+", "_", as.character(fam))))
+}
+
+## Same theme / choropleth style as 5.0 CENSO_data_zone.R ----
+map_theme_census <- function() {
+  ggplot2::theme_light() +
+    ggplot2::theme(
+      legend.position = "top",
+      legend.justification = "center",
+      legend.box.just = "center",
+      legend.direction = "horizontal",
+      legend.key.width = grid::unit(1.6, "cm"),
+      legend.key.height = grid::unit(0.28, "cm"),
+      legend.spacing.x = grid::unit(0, "cm"),
+      legend.text = ggplot2::element_text(size = 9),
+      legend.title = ggplot2::element_blank(),
+      legend.margin = ggplot2::margin(b = 4),
+      plot.title = ggplot2::element_text(size = 11, face = "bold", hjust = 0.5),
+      plot.margin = ggplot2::margin(t = 6, r = 10, b = 5, l = 10),
+      panel.grid = ggplot2::element_blank(),
+      strip.text.y = ggplot2::element_text(angle = 0),
+      strip.background = ggplot2::element_rect(fill = NA, color = "gray70"),
+      strip.text = ggplot2::element_text(color = "black"),
+      strip.text.y.left = ggplot2::element_text(angle = 0)
+    )
+}
+
+viridis_opts <- c("plasma", "viridis", "cividis", "inferno", "magma", "turbo")
+
+crime_family_levels <- levels(crime_data$family)
+
+for (i in seq_along(crime_family_levels)) {
+  fam <- crime_family_levels[[i]]
+  pal_opt <- viridis_opts[[((i - 1L) %% length(viridis_opts)) + 1L]]
+  title_chr <- paste0(fam)
+
+  counts_f <- crime_by_quad_family |>
+    dplyr::filter(.data$family == fam) |>
+    dplyr::select("quadrant", "n_crimes")
+
+  geo_f <- quad_unique_metro |>
+    dplyr::select("quadrant", "geometry") |>
+    dplyr::left_join(counts_f, by = "quadrant") |>
+    dplyr::mutate(n_crimes = tidyr::replace_na(.data$n_crimes, 0L))
+
+  p_f <- ggplot2::ggplot(geo_f) +
+    ggplot2::geom_sf(
+      ggplot2::aes(fill = .data$n_crimes),
+      color = grDevices::gray(0.85),
+      linewidth = 0.1
+    ) +
+    ggplot2::scale_fill_viridis_c(
+      option = pal_opt,
+      na.value = "grey90",
+      direction = -1
+    ) +
+    ggplot2::coord_sf(expand = FALSE) +
+    ggplot2::theme_minimal() +
+    ggplot2::labs(title = title_chr) +
+    map_theme_census()
+
+  ggplot2::ggsave(
+    filename = paste0(maps_crime_dir, "map_crime_count_", crime_family_filename(fam), ".png"),
+    plot = p_f,
+    width = 7,
+    height = 8,
+    dpi = 150,
+    create.dir = TRUE
+  )
+}
 
