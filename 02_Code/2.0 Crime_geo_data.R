@@ -98,25 +98,25 @@ units <- unique(crime_data$quadrant)[!unique(crime_data$quadrant) %in% unique(qu
 table(unique(crime_data$quadrant) %in% unique(quad_geo$quadrant))
 table(unique(quad_geo$quadrant) %in% unique(crime_data$quadrant))
 
-# Edit manual quadrant to check the most similar 
-# Validate this information 
+# Manual quadrant harmonization (crime labels not in quad_geo; match district + plan MDSF)
 crime_data <- crime_data |>
   mutate(
     quadrant = case_when(
-      quadrant == "Cuadrante 122A" ~ "Cuadrante 122",
-      quadrant == "Cuadrante 14"   ~ "Cuadrante 13",
-      quadrant == "Cuadrante 141A" ~ "Cuadrante 141",
-      quadrant == "Cuadrante 178"  ~ "Cuadrante 177",
-      quadrant == "Cuadrante 237B" ~ "Cuadrante 237A",
-      quadrant == "Cuadrante 238"  ~ "Cuadrante 239",
-      quadrant == "Cuadrante 25C"  ~ "Cuadrante 25A",
-      quadrant == "Cuadrante 26A"  ~ "Cuadrante 26",
-      quadrant == "Cuadrante 36B"  ~ "Cuadrante 36",
-      quadrant == "Cuadrante 36C"  ~ "Cuadrante 36",
-      quadrant == "Cuadrante 37B"  ~ "Cuadrante 37",
-      quadrant == "Cuadrante 38B"  ~ "Cuadrante 38",
-      quadrant == "Cuadrante 39B"  ~ "Cuadrante 39",
-      quadrant == "Cuadrante 59"   ~ "Cuadrante 59A",
+      quadrant == "Cuadrante 122A" & district == "Providencia" ~ "Cuadrante 122",
+      quadrant == "Cuadrante 14" & district == "Santiago" ~ "Cuadrante 7",
+      quadrant == "Cuadrante 141A" & district == "Providencia" ~ "Cuadrante 124",
+      quadrant == "Cuadrante 178" & district == "La Pintana" ~ "Cuadrante 177",
+      quadrant == "Cuadrante 237B" & district == "Pudahuel" ~ "Cuadrante 237A",
+      quadrant == "Cuadrante 238" & district == "Pudahuel" ~ "Cuadrante 237A",
+      quadrant == "Cuadrante 25C" & district == "Providencia" ~ "Cuadrante 125",
+      quadrant == "Cuadrante 25C" & district == "Recoleta" ~ "Cuadrante 25A",
+      quadrant == "Cuadrante 26A" & district == "Providencia" ~ "Cuadrante 126",
+      quadrant == "Cuadrante 36B" & district == "Colina" ~ "Cuadrante 36",
+      quadrant == "Cuadrante 36C" & district == "Colina" ~ "Cuadrante 36",
+      quadrant == "Cuadrante 37B" & district == "Colina" ~ "Cuadrante 37",
+      quadrant == "Cuadrante 38B" & district == "Colina" ~ "Cuadrante 38",
+      quadrant == "Cuadrante 39B" & district == "Colina" ~ "Cuadrante 39",
+      quadrant == "Cuadrante 59" & district == "La Cisterna" ~ "Cuadrante 59A",
       TRUE ~ quadrant
     )
   )

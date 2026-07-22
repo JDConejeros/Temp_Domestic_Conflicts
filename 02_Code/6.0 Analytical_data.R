@@ -12,13 +12,13 @@ data_out <- "01_Data/Output/"
 
 # Data files 
 crimes <- "Crime_data_RM_2017_2025.RData"
+censo_quad <- "Quadrant_data_geo_CENSO_urban_RM.RData"
 
 ## Load data ----
-
 crimes <- rio::import(paste0(data_out, crimes))
+censo_quad <- rio::import(paste0(data_out, censo_quad))
 
 ## Analytical data ----
-
 # Urban / Rural district
 aux <- chilemapas::codigos_territoriales |> 
   mutate(nombre_comuna=stringr::str_to_title(nombre_comuna)) |> 
@@ -30,7 +30,7 @@ aux <- chilemapas::codigos_territoriales |>
 
 crimes <- crimes |> 
   mutate(zone = if_else(code_district %in% aux, "Urban", "Rural")) |> 
-  mutate(zone=factor(zone, levels=c("Rural", "Urban")))
+  mutate(zone = factor(zone, levels=c("Rural", "Urban")))
 
 # time_hms: morning / afternoon / night
 crimes <- crimes |> 
@@ -41,6 +41,8 @@ crimes <- crimes |>
     TRUE ~ "Nighttime"
   )) |> 
   mutate(time_event = factor(time_event, levels = c("Daytime", "Nighttime")))
+
+glimpse(crimes)
 
 # Save data
 save(crimes, file=paste0(data_out, "analytical_data/", "quadrant/", "crime_data_RM_2017_2025", ".RData"))
@@ -237,3 +239,4 @@ glimpse(data_cov)
 ## Save district-level analytical data ----
 save(data_cov, file=paste0(data_out, "analytical_data/", "quadrant/", "climate_poverty_RM_2017_2025", ".RData"))
 save(data_geo, file=paste0(data_out, "analytical_data/", "quadrant/", "quad_geometry_2022", ".RData"))
+

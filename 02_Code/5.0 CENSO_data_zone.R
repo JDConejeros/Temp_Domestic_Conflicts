@@ -23,7 +23,19 @@ add_area_km2_zone_full <- function(geo_sf) {
   geo_sf |>
     sf::st_transform(metric_crs) |>
     dplyr::mutate(
-      area_km2_zone_full = as.numeric(sf::st_area(.data$geometry)) / 1e6
+      area_km2_zone_full = as.numeric(sf::st_area(.data$geometry)) / 1e6,
+      area_m2_zone_full = .data$area_km2_zone_full * 1e6,
+      area_ha_zone_full = .data$area_km2_zone_full * 100,
+      population_density_per_m2_zone_full = dplyr::if_else(
+        !is.na(.data$population) & .data$area_km2_zone_full >= 1e-3,
+        .data$population / .data$area_m2_zone_full,
+        NA_real_
+      ),
+      population_density_per_ha_zone_full = dplyr::if_else(
+        !is.na(.data$population) & .data$area_km2_zone_full >= 1e-3,
+        .data$population / .data$area_ha_zone_full,
+        NA_real_
+      )
     ) |>
     sf::st_transform(4326)
 }
@@ -65,10 +77,22 @@ clip_metro_area_and_density <- function(geo_sf) {
     dplyr::mutate(
       # Clipped polygon area (km2); replaces interpretation of full-zone area for local density
       area_km2 = as.numeric(sf::st_area(.data$geometry)) / 1e6,
-      # Threshold 1e-3 km2 (~1e3 m2): avoids extreme densities on sliver fragments
+      area_m2 = .data$area_km2 * 1e6,
+      area_ha = .data$area_km2 * 100,
+      # Threshold 1e-3 km2 (~1e3 m2, 0.1 ha): avoids extreme densities on sliver fragments
       population_density_per_km2 = dplyr::if_else(
         !is.na(.data$population) & .data$area_km2 >= 1e-3,
         .data$population / .data$area_km2,
+        NA_real_
+      ),
+      population_density_per_m2 = dplyr::if_else(
+        !is.na(.data$population) & .data$area_km2 >= 1e-3,
+        .data$population / .data$area_m2,
+        NA_real_
+      ),
+      population_density_per_ha = dplyr::if_else(
+        !is.na(.data$population) & .data$area_km2 >= 1e-3,
+        .data$population / .data$area_ha,
         NA_real_
       )
     ) |>
@@ -207,32 +231,38 @@ d_zonal <- d_zonal |>
     rate_children_per_10k = ((n_edad_0_5 + n_edad_6_13) / n_per) * 10000,
     rate_age_60_plus_per_10k = (n_edad_60_mas / n_per) * 10000,
     rate_immigrants_per_10k = (n_inmigrantes / n_per) * 10000,
-    ## Housing material scores (literature weights on dwelling counts; higher = more “solid” stock)
-    score_wall =
+    ## ── SCORES BRUTOS (pared / techo / piso) ─────────────────────────────────
+    ## PAREDES — rango teórico [-2, +2]; ref (0): tabique sin forro
+    score_wall_raw =
       2 * n_mat_paredes_hormigon +
       2 * n_mat_paredes_albanileria +
       1 * n_mat_paredes_tabique_forrado +
       0 * n_mat_paredes_tabique_sin_forro +
       -1 * n_mat_paredes_artesanal +
       -2 * n_mat_paredes_precarios,
-    score_roof =
+    ## TECHO — rango teórico [-2, +2]; ref (0): zinc
+    score_roof_raw =
       2 * n_mat_techo_tejas +
       2 * n_mat_techo_hormigon +
+      1 * n_mat_techo_fibrocemento +
       0 * n_mat_techo_zinc +
-      0 * n_mat_techo_fibrocemento +
-      -2 * n_mat_techo_precarios +
-      -3 * n_mat_techo_sin_cubierta,
-    score_floor =
+      -1 * n_mat_techo_precarios +
+      -2 * n_mat_techo_sin_cubierta,
+    ## PISO — rango teórico [-2, +2]; ref (0): radier sin revestimiento
+    score_floor_raw =
       2 * n_mat_piso_radier_con_revestimiento +
-      1 * n_mat_piso_radier_sin_revestimiento +
-      0 * n_mat_piso_baldosa_cemento +
+      1 * n_mat_piso_baldosa_cemento +
+      0 * n_mat_piso_radier_sin_revestimiento +
       -1 * n_mat_piso_capa_cemento +
       -2 * n_mat_piso_tierra,
-    score_overcrowding = -3 * n_viv_hacinadas,
-    ## Vulnerability index: negate the composite so LOW = lower vulnerability, HIGH = higher
-    ## vulnerability (more precarious materials, worse roofs/floors, overcrowding raise the index).
-    housing_heat_vulnerability_index =
-      -(score_wall + score_roof + score_floor + score_overcrowding) / n_vp_ocupada
+    ## Puntaje térmico medio por dimensión; cada uno en [-2, +2]
+    score_wall_per_dwell = score_wall_raw / n_vp_ocupada,
+    score_roof_per_dwell = score_roof_raw / n_vp_ocupada,
+    score_floor_per_dwell = score_floor_raw / n_vp_ocupada,
+    ## Índice compuesto por vivienda; rango teórico [-6, +6]
+    composite_per_dwell = score_wall_per_dwell + score_roof_per_dwell + score_floor_per_dwell,
+    ## [0, 1] sobre límites teóricos: 0 = mínima vulnerabilidad material, 1 = máxima
+    housing_materiality_heat_index = (composite_per_dwell - 6) / (-6 - 6)
   ) |>
   dplyr::ungroup()
 
@@ -273,7 +303,7 @@ census_rm_2024_results <- list(
     metric_crs,
     " (meters → km2). ",
     "population_density_per_km2 uses clipped area_km2. ",
-    "housing_heat_vulnerability_index increases with material/structural heat risk (negated weighted material-quality sum per occupied dwelling)."
+    "housing_materiality_heat_index: thermal materiality composite per dwelling, linearly mapped from theoretical [-6,6] to [0,1] (0 = best stock, 1 = worst)."
   )
 )
 
@@ -517,32 +547,32 @@ quad_geo <- quad_geo |>
     rate_children_per_10k = ((.data$n_edad_0_5 + .data$n_edad_6_13) / .data$n_per) * 10000,
     rate_age_60_plus_per_10k = (.data$n_edad_60_mas / .data$n_per) * 10000,
     rate_immigrants_per_10k = (.data$n_inmigrantes / .data$n_per) * 10000,
-    ## Housing material scores (literature weights on dwelling counts; higher = more “solid” stock)
-    score_wall =
+    ## ── SCORES BRUTOS (pared / techo / piso) ─────────────────────────────────
+    score_wall_raw =
       2 * .data$n_mat_paredes_hormigon +
       2 * .data$n_mat_paredes_albanileria +
       1 * .data$n_mat_paredes_tabique_forrado +
       0 * .data$n_mat_paredes_tabique_sin_forro +
       -1 * .data$n_mat_paredes_artesanal +
       -2 * .data$n_mat_paredes_precarios,
-    score_roof =
+    score_roof_raw =
       2 * .data$n_mat_techo_tejas +
       2 * .data$n_mat_techo_hormigon +
+      1 * .data$n_mat_techo_fibrocemento +
       0 * .data$n_mat_techo_zinc +
-      0 * .data$n_mat_techo_fibrocemento +
-      -2 * .data$n_mat_techo_precarios +
-      -3 * .data$n_mat_techo_sin_cubierta,
-    score_floor =
+      -1 * .data$n_mat_techo_precarios +
+      -2 * .data$n_mat_techo_sin_cubierta,
+    score_floor_raw =
       2 * .data$n_mat_piso_radier_con_revestimiento +
-      1 * .data$n_mat_piso_radier_sin_revestimiento +
-      0 * .data$n_mat_piso_baldosa_cemento +
+      1 * .data$n_mat_piso_baldosa_cemento +
+      0 * .data$n_mat_piso_radier_sin_revestimiento +
       -1 * .data$n_mat_piso_capa_cemento +
       -2 * .data$n_mat_piso_tierra,
-    score_overcrowding = -3 * .data$n_viv_hacinadas,
-    ## Vulnerability index: negate the composite so LOW = lower vulnerability, HIGH = higher
-    ## vulnerability (more precarious materials, worse roofs/floors, overcrowding raise the index).
-    housing_heat_vulnerability_index =
-      -(score_wall + score_roof + score_floor + score_overcrowding) / .data$n_vp_ocupada
+    score_wall_per_dwell = .data$score_wall_raw / .data$n_vp_ocupada,
+    score_roof_per_dwell = .data$score_roof_raw / .data$n_vp_ocupada,
+    score_floor_per_dwell = .data$score_floor_raw / .data$n_vp_ocupada,
+    composite_per_dwell = .data$score_wall_per_dwell + .data$score_roof_per_dwell + .data$score_floor_per_dwell,
+    housing_materiality_heat_index = (.data$composite_per_dwell - 6) / (-6 - 6)
   )
 
 quad_geo <- add_area_km2_zone_full(quad_geo)
@@ -587,5 +617,37 @@ for (i in seq_along(map_vars_quad)) {
 
 glimpse(quad_geo)
 summary(quad_geo)
-
+# Save process 
 save(quad_geo, file = paste0(output, "Quadrant_data_geo_CENSO_urban_RM.RData"))
+
+## ESRI Shapefile: DBF names ≤10 chars, no mixed geometry; avoid GDAL "improper field name" / write errors
+sanitize_shp_field_names <- function(nms, max_len = 10L) {
+  x <- gsub("[^a-zA-Z0-9_]", "_", nms)
+  x <- ifelse(grepl("^[0-9]", x), paste0("x", x), x)
+  x <- substr(x, 1L, max_len)
+  make.unique(x, sep = "_")
+}
+
+quad_shp <- sf::st_transform(quad_geo, 4326)
+quad_shp <- suppressWarnings(sf::st_cast(quad_shp, "MULTIPOLYGON"))
+
+geo_nm <- attr(quad_shp, "sf_column", exact = TRUE)
+nm <- names(quad_shp)
+nm[nm != geo_nm] <- sanitize_shp_field_names(nm[nm != geo_nm])
+names(quad_shp) <- nm
+
+shp_dir <- paste0(output, "shp")
+dir.create(shp_dir, showWarnings = FALSE, recursive = TRUE)
+## Remove prior quad_geo_censo.* (partial/corrupt SHP from failed runs breaks GDAL update)
+shp_old <- list.files(shp_dir, pattern = "^quad_geo_censo\\.", full.names = TRUE)
+if (length(shp_old) > 0L) {
+  unlink(shp_old)
+}
+
+sf::st_write(
+  quad_shp,
+  dsn = shp_dir,
+  layer = "quad_geo_censo",
+  driver = "ESRI Shapefile",
+  delete_layer = FALSE
+)
